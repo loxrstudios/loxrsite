@@ -12,6 +12,10 @@
     </script>
     <title>3D Spinning Text</title>
     <style>
+        @font-face {
+            font-family: 'hori';
+            src: url('horizon.otf');
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -27,21 +31,69 @@
             margin: 0 auto;
         }
         .button {
+            font-family: 'hori';
             display: inline-block;
+            border: #fff solid 2px;
             padding: 10px 20px;
-            background-color: #333;
-            color: #fff;
-            font-family: Arial, sans-serif;
+            color: #000000;
+            font-size: 8px;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease-in-out;
+        }
+        .active{
+            font-family: 'hori';
+            display: inline-block;
+            border: #2a2a2a solid 2px;
+            padding: 10px 20px;
+            color: #ffffff;
+            background-color: #2a2a2a;
             font-size: 16px;
             border: none;
             cursor: pointer;
+            border-radius: 10px;
+        }
+        .active:hover{
+            font-family: 'hori';
+            display: inline-block;
+            border: #ffffff solid 2px;
+            padding: 10px 20px;
+            color: #ffffff;
+            background-color: #2a2a2a;
+            font-size: 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 10px;
+            /* add rainbow shadows */
+            box-shadow: 0 0 10px #ff000080, 0 0 20px #fbff00, 0 0 40px #09ff00, 0 0 80px #00ffd0, 0 0 120px #3c00ff, 0 0 200px #f700ff, 0 0 300px #ff0066, 0 0 400px #ff0000;
+        }
+        .text-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            opacity: 0;
+            animation: fade-in 1s ease-in-out 4s forwards;
+        }
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 <body>
 
 
-
+    <div class="button-container">
+        <a id="uwua" href=""><button id="myButton" class="button" >wait</button></a>
+    </div>
+    
 <script type="module">
     import * as THREE from "three";
     import { FontLoader } from 'three/addons/loaders/FontLoader.js';
@@ -56,11 +108,19 @@
 
     init();
     animate();
+    function updateButtonText() {
+    const button = document.getElementById('myButton');
+    button.textContent = 'more';
+    button.classList.add('active');
+    const uwue = document.getElementById('uwua');
+    uwue.href = '/uwu.html';
+}
 
     function init() {
+        
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        renderer = new THREE.WebGLRenderer();
+        renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
@@ -68,8 +128,8 @@
         loader.load('Horizon_Bold.json', function(font) {
             const geometry = new THREE.TextGeometry('loxr', {
                 font: font,
-                size: 0.7, // Reduce the size of the text
-                height: 1.5,
+                size: 0.7, // Reducir el tamaño del texto
+                height: 1.2,
                 curveSegments: 32,
                 bevelEnabled: true,
                 bevelThickness: 0.05,
@@ -77,52 +137,107 @@
                 bevelSegments: 10,
             });
 
-            // Center the geometry
+            // Centrar la geometría
             geometry.computeBoundingBox();
             const textWidth = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
-            geometry.translate(-textWidth / 2, 0, 0); // Anchoring to the center-back part
+            const centerOffset = -0.5 * textWidth;
+            geometry.translate(centerOffset, 0, 0); // Anclaje en la parte trasera
 
-            const material = new THREE.MeshStandardMaterial({
-                color: 0xffffff,
-                roughness: 0.4,
-                metalness: 0.8,
-                side: THREE.DoubleSide // Render both sides of the geometry
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xffffff, // Color blanco
+                shininess: 500, // Ajustar el brillo del material
+                side: THREE.DoubleSide, // Renderizar ambos lados de la geometría
+                flatShading: true // Aplicar sombreado plano para una apariencia más uniforme
             });
             textMesh = new THREE.Mesh(geometry, material);
+            textMesh.castShadow = true; // Permitir que el texto proyecte sombras
             scene.add(textMesh);
-            textMesh.position.set(0, -1, -5); // Adjust the position for better visibility
-            initialRotation = textMesh.rotation.clone(); // Store the initial rotation
+            textMesh.position.set(0, 0, -5); // Ajustar la posición para una mejor visibilidad
+            initialRotation = textMesh.rotation.clone(); // Almacenar la rotación inicial
             camera.position.z = 5;
 
-            // Add lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            // Añadir luces
+            const ambientLight = new THREE.AmbientLight(0x404040); // Luz ambiental más oscura
             scene.add(ambientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(0, 0, 1); // Move the light to the center
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); // Luz direccional más suave
+            directionalLight.position.set(0, 0, 1); // Mover la luz al centro
+            directionalLight.castShadow = true; // Permitir que la luz direccional proyecte sombras
             scene.add(directionalLight);
 
-            const pointLight = new THREE.PointLight(0xff0000, 0.8);
-            pointLight.position.set(0, 0, 2); // Move the light to the center
+            const pointLight = new THREE.PointLight(0xff0000, 0.8); // Luz puntual roja
+            pointLight.position.set(0, 0, 2); // Mover la luz al centro
+            pointLight.castShadow = true; // Permitir que la luz puntual proyecte sombras
             scene.add(pointLight);
 
-            // Event listeners for interaction
+            // Configuración de sombras
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Configurar el tipo de mapeo de sombras
+            renderer.shadowMap.autoUpdate = false; // Desactivar la actualización automática del mapeo de sombras
+            directionalLight.shadow.mapSize.width = 1024; // Tamaño del mapa de sombras
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5; // Ajustar la distancia del plano de recorte cercano
+            directionalLight.shadow.camera.far = 10; // Ajustar la distancia del plano de recorte lejano
+
+            // Event listeners para la interacción
             renderer.domElement.addEventListener('mousedown', onMouseDown);
             renderer.domElement.addEventListener('mousemove', onMouseMove);
             renderer.domElement.addEventListener('mouseup', onMouseUp);
             renderer.domElement.addEventListener('mouseout', onMouseUp);
+
+            // Iniciar movimiento aleatorio después de un retraso
+            setTimeout(startRandomMovement()
+            , 4000);
         });
+
+        const textContainer = document.createElement('div');
+        textContainer.classList.add('text-container');
+        document.body.appendChild(textContainer);
+    }
+
+    function startRandomMovement() {
+        setInterval(moveRandomly, 3000);
+        setTimeout(updateButtonText, 4000);
+    }
+
+    function moveRandomly() {
+        const randomPosition = getRandomPosition();
+        animateMoveToPosition(randomPosition);
+    }
+
+    function animateMoveToPosition(targetPosition) {
+        if (textMesh) {
+            const initialPosition = textMesh.position.clone();
+
+            const duration = 3000; // Duración de la animación en milisegundos
+            const startTime = Date.now();
+
+            function updatePosition() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1); // Normalizar el tiempo entre 0 y 1
+                const easedT = easeInOutCubic(t); // Aplicar una función de suavizado para una animación más fluida
+
+                const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
+                textMesh.position.copy(lerpedPosition);
+
+                if (t < 1) {
+                    requestAnimationFrame(updatePosition);
+                }
+            }
+
+            updatePosition();
+        }
     }
 
     function animate() {
         requestAnimationFrame(animate);
 
-        // Apply rotation
+        // Aplicar rotación
         if (!isDragging && textMesh) {
-            textMesh.rotation.y += 0.01; // Adjust the rotation speed as desired
+            textMesh.rotation.y += 0.017; // Ajustar la velocidad de rotación según sea necesario
         }
 
-        // Render the scene
+        // Renderizar la escena
+        renderer.shadowMap.needsUpdate = true; // Actualizar el mapeo de sombras
         renderer.render(scene, camera);
     }
 
@@ -144,7 +259,7 @@
                 y: event.clientY - previousMousePosition.y
             };
 
-            // Rotate the text based on the mouse movement
+            // Rotar el texto en función del movimiento del ratón
             textMesh.rotation.y += deltaMove.x * 0.01;
             textMesh.rotation.x += deltaMove.y * 0.01;
 
@@ -159,12 +274,12 @@
         event.preventDefault();
         isDragging = false;
 
-        // Reset the rotation to initial rotation if rotated from the original trajectory
+        // Restablecer la rotación a la rotación inicial si se ha girado desde la trayectoria original
         if (textMesh && Math.abs(textMesh.rotation.x - initialRotation.x) > 0.1 || Math.abs(textMesh.rotation.y - initialRotation.y) > 0.1 || Math.abs(textMesh.rotation.z - initialRotation.z) > 0.1) {
             animateMoveToRandomLocation();
         }
 
-        // Start the timeout for returning to normal state after 2 seconds of inactivity
+        // Iniciar el temporizador para volver al estado normal después de 2 segundos de inactividad
         clearTimeout(dragTimeout);
         dragTimeout = setTimeout(function() {
             if (textMesh) {
@@ -173,34 +288,9 @@
         }, 2000);
     }
 
-    function animateMoveToRandomLocation() {
-        if (textMesh) {
-            const initialPosition = textMesh.position.clone();
-            const targetPosition = getRandomPosition();
-
-            const duration = 2000; // Animation duration in milliseconds
-            const startTime = Date.now();
-
-            function updatePosition() {
-                const elapsed = Date.now() - startTime;
-                const t = Math.min(elapsed / duration, 1); // Normalize time between 0 and 1
-                const easedT = easeInOutCubic(t); // Apply easing function to smooth the animation
-
-                const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
-                textMesh.position.copy(lerpedPosition);
-
-                if (t < 1) {
-                    requestAnimationFrame(updatePosition);
-                }
-            }
-
-            updatePosition();
-        }
-    }
-
     function getRandomPosition() {
-        const distance = 5; // Distance from the camera
-        const angle = Math.random() * Math.PI * 2; // Random angle in radians
+        const distance = 5; // Distancia desde la cámara
+        const angle = Math.random() * Math.PI * 2; // Ángulo aleatorio en radianes
         const x = Math.cos(angle) * distance;
         const y = Math.sin(angle) * distance;
 
@@ -211,18 +301,18 @@
         return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
     }
 
-    function animateMoveToCenter() {
+    function centerText() {
         if (textMesh) {
             const initialPosition = textMesh.position.clone();
-            const targetPosition = new THREE.Vector3(0, -1, -5); // Target position at the center
+            const targetPosition = new THREE.Vector3(0, 0, -5); // Posición objetivo en el centro
 
-            const duration = 1000; // Animation duration in milliseconds
+            const duration = 4000; // Duración de la animación en milisegundos
             const startTime = Date.now();
 
             function updatePosition() {
                 const elapsed = Date.now() - startTime;
-                const t = Math.min(elapsed / duration, 1); // Normalize time between 0 and 1
-                const easedT = easeInOutCubic(t); // Apply easing function to smooth the animation
+                const t = Math.min(elapsed / duration, 1); // Normalizar el tiempo entre 0 y 1
+                const easedT = easeInOutCubic(t); // Aplicar una función de suavizado para una animación más fluida
 
                 const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
                 textMesh.position.copy(lerpedPosition);
@@ -236,8 +326,5 @@
         }
     }
 </script>
-<div class="button-container">
-    <button class="button" onclick="animateMoveToCenter()">Center Text</button>
-</div>
 </body>
 </html>

@@ -19,9 +19,28 @@
         canvas {
             display: block;
         }
+        .button-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0 auto;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #333;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+
+
 
 <script type="module">
     import * as THREE from "three";
@@ -29,6 +48,11 @@
 
     var scene, camera, renderer, textMesh;
     var isDragging = false;
+    var initialRotation, dragTimeout;
+    var previousMousePosition = {
+        x: 0,
+        y: 0
+    };
 
     init();
     animate();
@@ -44,9 +68,9 @@
         loader.load('Horizon_Bold.json', function(font) {
             const geometry = new THREE.TextGeometry('loxr', {
                 font: font,
-                size: 1,
-                height: 1.5, // Increase the extrusion depth for more depth
-                curveSegments: 32, // Increase the curve segments for smoother appearance
+                size: 0.7, // Reduce the size of the text
+                height: 1.5,
+                curveSegments: 32,
                 bevelEnabled: true,
                 bevelThickness: 0.05,
                 bevelSize: 0.05,
@@ -56,12 +80,18 @@
             // Center the geometry
             geometry.computeBoundingBox();
             const textWidth = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
-            geometry.translate(-0.5 * textWidth, 0, 0);
+            geometry.translate(-textWidth / 2, 0, 0); // Anchoring to the center-back part
 
-            const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.4,
+                metalness: 0.8,
+                side: THREE.DoubleSide // Render both sides of the geometry
+            });
             textMesh = new THREE.Mesh(geometry, material);
             scene.add(textMesh);
             textMesh.position.set(0, -1, -5); // Adjust the position for better visibility
+            initialRotation = textMesh.rotation.clone(); // Store the initial rotation
             camera.position.z = 5;
 
             // Add lights
@@ -69,8 +99,18 @@
             scene.add(ambientLight);
 
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-            directionalLight.position.set(0, 1, 0);
+            directionalLight.position.set(0, 0, 1); // Move the light to the center
             scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0xff0000, 0.8);
+            pointLight.position.set(0, 0, 2); // Move the light to the center
+            scene.add(pointLight);
+
+            // Event listeners for interaction
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('mouseout', onMouseUp);
         });
     }
 
@@ -86,33 +126,118 @@
         renderer.render(scene, camera);
     }
 
-    function glitchEffect() {
-        if (textMesh) {
-            const originalColor = textMesh.material.color.getHex();
+    function onMouseDown(event) {
+        event.preventDefault();
+        isDragging = true;
+        clearTimeout(dragTimeout);
+        previousMousePosition = {
+            x: event.clientX,
+            y: event.clientY
+        };
+    }
 
-            // Randomly change the text color
-            textMesh.material.color.setHex(Math.random() * 0xffffff);
+    function onMouseMove(event) {
+        event.preventDefault();
+        if (isDragging && textMesh) {
+            const deltaMove = {
+                x: event.clientX - previousMousePosition.x,
+                y: event.clientY - previousMousePosition.y
+            };
 
-            setTimeout(function() {
-                // Reset the text color to the original color
-                textMesh.material.color.setHex(originalColor);
-            }, 100);
+            // Rotate the text based on the mouse movement
+            textMesh.rotation.y += deltaMove.x * 0.01;
+            textMesh.rotation.x += deltaMove.y * 0.01;
+
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
         }
     }
 
-    document.addEventListener('mousedown', function() {
-        isDragging = true;
-    });
-
-    document.addEventListener('mouseup', function() {
+    function onMouseUp(event) {
+        event.preventDefault();
         isDragging = false;
-        glitchEffect();
-    });
 
-    document.addEventListener('mouseout', function() {
-        isDragging = false;
-        glitchEffect();
-    });
+        // Reset the rotation to initial rotation if rotated from the original trajectory
+        if (textMesh && Math.abs(textMesh.rotation.x - initialRotation.x) > 0.1 || Math.abs(textMesh.rotation.y - initialRotation.y) > 0.1 || Math.abs(textMesh.rotation.z - initialRotation.z) > 0.1) {
+            animateMoveToRandomLocation();
+        }
+
+        // Start the timeout for returning to normal state after 2 seconds of inactivity
+        clearTimeout(dragTimeout);
+        dragTimeout = setTimeout(function() {
+            if (textMesh) {
+                textMesh.scale.set(1, 1, 1);
+            }
+        }, 2000);
+    }
+
+    function animateMoveToRandomLocation() {
+        if (textMesh) {
+            const initialPosition = textMesh.position.clone();
+            const targetPosition = getRandomPosition();
+
+            const duration = 2000; // Animation duration in milliseconds
+            const startTime = Date.now();
+
+            function updatePosition() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1); // Normalize time between 0 and 1
+                const easedT = easeInOutCubic(t); // Apply easing function to smooth the animation
+
+                const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
+                textMesh.position.copy(lerpedPosition);
+
+                if (t < 1) {
+                    requestAnimationFrame(updatePosition);
+                }
+            }
+
+            updatePosition();
+        }
+    }
+
+    function getRandomPosition() {
+        const distance = 5; // Distance from the camera
+        const angle = Math.random() * Math.PI * 2; // Random angle in radians
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+
+        return new THREE.Vector3(x, y, -distance);
+    }
+
+    function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    }
+
+    function animateMoveToCenter() {
+        if (textMesh) {
+            const initialPosition = textMesh.position.clone();
+            const targetPosition = new THREE.Vector3(0, -1, -5); // Target position at the center
+
+            const duration = 1000; // Animation duration in milliseconds
+            const startTime = Date.now();
+
+            function updatePosition() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1); // Normalize time between 0 and 1
+                const easedT = easeInOutCubic(t); // Apply easing function to smooth the animation
+
+                const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
+                textMesh.position.copy(lerpedPosition);
+
+                if (t < 1) {
+                    requestAnimationFrame(updatePosition);
+                }
+            }
+
+            updatePosition();
+        }
+    }
 </script>
+<div class="button-container">
+    <button class="button" onclick="animateMoveToCenter()">Center Text</button>
+</div>
 </body>
 </html>

@@ -1,49 +1,243 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Trippy Website</title>
-  <style>
-    body {
-      background: black;
-      overflow: hidden;
-    }
-    #myImage {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      filter: grayscale(100%);
-    }
-    #badussy{
-        width: 100%;
-    }
-    #loxrstudios{
-        color: white;
-        position: absolute;
-        text-align: center;
-        width: fit-content;
-        bottom: 10px;
-    }
-  </style>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.97.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three/examples/jsm/"
+            }
+        }
+    </script>
+    <title>3D Spinning Text</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        .button-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0 auto;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #333;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <img id="myImage" src="loxr.png" width="300" height="300">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-  <script>
-    const myImage = document.getElementById('myImage');
-    const effects = ['blur(5px)', 'contrast(200%)', 'brightness(0.5)', 'invert(1)', 'sepia(1)', 'saturate(20)', 'hue-rotate(90deg)', 'grayscale(0)'];
-    
-    setInterval(() => {
-      const randomEffect = effects[Math.floor(Math.random() * effects.length)];
-      gsap.to(myImage, {
-        filter: randomEffect,
-        duration: Math.random() * 0.5 + 0.1,
-        ease: "power1.inOut"
-      });
-    }, 6);
-  </script>
-  <div id="badussy">
-  <p id="loxrstudios">loxrstudios</p>
-  </div>
+
+
+
+<script type="module">
+    import * as THREE from "three";
+    import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+
+    var scene, camera, renderer, textMesh;
+    var isDragging = false;
+    var initialRotation, dragTimeout;
+    var previousMousePosition = {
+        x: 0,
+        y: 0
+    };
+
+    init();
+    animate();
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const loader = new FontLoader();
+        loader.load('Horizon_Bold.json', function(font) {
+            const geometry = new THREE.TextGeometry('loxr', {
+                font: font,
+                size: 0.7, // Reduce the size of the text
+                height: 1.5,
+                curveSegments: 32,
+                bevelEnabled: true,
+                bevelThickness: 0.05,
+                bevelSize: 0.05,
+                bevelSegments: 10,
+            });
+
+            // Center the geometry
+            geometry.computeBoundingBox();
+            const textWidth = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
+            geometry.translate(-textWidth / 2, 0, 0); // Anchoring to the center-back part
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.4,
+                metalness: 0.8,
+                side: THREE.DoubleSide // Render both sides of the geometry
+            });
+            textMesh = new THREE.Mesh(geometry, material);
+            scene.add(textMesh);
+            textMesh.position.set(0, -1, -5); // Adjust the position for better visibility
+            initialRotation = textMesh.rotation.clone(); // Store the initial rotation
+            camera.position.z = 5;
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(0, 0, 1); // Move the light to the center
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0xff0000, 0.8);
+            pointLight.position.set(0, 0, 2); // Move the light to the center
+            scene.add(pointLight);
+
+            // Event listeners for interaction
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('mouseout', onMouseUp);
+        });
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Apply rotation
+        if (!isDragging && textMesh) {
+            textMesh.rotation.y += 0.01; // Adjust the rotation speed as desired
+        }
+
+        // Render the scene
+        renderer.render(scene, camera);
+    }
+
+    function onMouseDown(event) {
+        event.preventDefault();
+        isDragging = true;
+        clearTimeout(dragTimeout);
+        previousMousePosition = {
+            x: event.clientX,
+            y: event.clientY
+        };
+    }
+
+    function onMouseMove(event) {
+        event.preventDefault();
+        if (isDragging && textMesh) {
+            const deltaMove = {
+                x: event.clientX - previousMousePosition.x,
+                y: event.clientY - previousMousePosition.y
+            };
+
+            // Rotate the text based on the mouse movement
+            textMesh.rotation.y += deltaMove.x * 0.01;
+            textMesh.rotation.x += deltaMove.y * 0.01;
+
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        }
+    }
+
+    function onMouseUp(event) {
+        event.preventDefault();
+        isDragging = false;
+
+        // Reset the rotation to initial rotation if rotated from the original trajectory
+        if (textMesh && Math.abs(textMesh.rotation.x - initialRotation.x) > 0.1 || Math.abs(textMesh.rotation.y - initialRotation.y) > 0.1 || Math.abs(textMesh.rotation.z - initialRotation.z) > 0.1) {
+            animateMoveToRandomLocation();
+        }
+
+        // Start the timeout for returning to normal state after 2 seconds of inactivity
+        clearTimeout(dragTimeout);
+        dragTimeout = setTimeout(function() {
+            if (textMesh) {
+                textMesh.scale.set(1, 1, 1);
+            }
+        }, 2000);
+    }
+
+    function animateMoveToRandomLocation() {
+        if (textMesh) {
+            const initialPosition = textMesh.position.clone();
+            const targetPosition = getRandomPosition();
+
+            const duration = 2000; // Animation duration in milliseconds
+            const startTime = Date.now();
+
+            function updatePosition() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1); // Normalize time between 0 and 1
+                const easedT = easeInOutCubic(t); // Apply easing function to smooth the animation
+
+                const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
+                textMesh.position.copy(lerpedPosition);
+
+                if (t < 1) {
+                    requestAnimationFrame(updatePosition);
+                }
+            }
+
+            updatePosition();
+        }
+    }
+
+    function getRandomPosition() {
+        const distance = 5; // Distance from the camera
+        const angle = Math.random() * Math.PI * 2; // Random angle in radians
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+
+        return new THREE.Vector3(x, y, -distance);
+    }
+
+    function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    }
+
+    function animateMoveToCenter() {
+        if (textMesh) {
+            const initialPosition = textMesh.position.clone();
+            const targetPosition = new THREE.Vector3(0, -1, -5); // Target position at the center
+
+            const duration = 1000; // Animation duration in milliseconds
+            const startTime = Date.now();
+
+            function updatePosition() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1); // Normalize time between 0 and 1
+                const easedT = easeInOutCubic(t); // Apply easing function to smooth the animation
+
+                const lerpedPosition = new THREE.Vector3().lerpVectors(initialPosition, targetPosition, easedT);
+                textMesh.position.copy(lerpedPosition);
+
+                if (t < 1) {
+                    requestAnimationFrame(updatePosition);
+                }
+            }
+
+            updatePosition();
+        }
+    }
+</script>
+<div class="button-container">
+    <button class="button" onclick="animateMoveToCenter()">Center Text</button>
+</div>
 </body>
 </html>

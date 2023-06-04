@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trippy Website</title>
+  <style>
+    body {
+      background: black;
+      overflow: hidden;
+    }
+    #myImage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      filter: grayscale(100%);
+    }
+    #badussy{
+        width: 100%;
+    }
+    #loxrstudios{
+        color: white;
+        position: absolute;
+        text-align: center;
+        width: fit-content;
+        bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <img id="myImage" src="loxr.png" width="300" height="300">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+  <script>
+    const myImage = document.getElementById('myImage');
+    const effects = ['blur(5px)', 'contrast(200%)', 'brightness(0.5)', 'invert(1)', 'sepia(1)', 'saturate(20)', 'hue-rotate(90deg)', 'grayscale(0)'];
+    
+    setInterval(() => {
+      const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+      gsap.to(myImage, {
+        filter: randomEffect,
+        duration: Math.random() * 0.5 + 0.1,
+        ease: "power1.inOut"
+      });
+    }, 6);
+  </script>
+  <div id="badussy">
+  <p id="loxrstudios">loxrstudios</p>
+  </div>
+</body>
+</html>

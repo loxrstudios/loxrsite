@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.97.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three/examples/jsm/"
+            }
+        }
+    </script>
+    <title>3D Spinning Text</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<script type="module">
+    import * as THREE from "three";
+    import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+
+    var scene, camera, renderer, textMesh;
+    var isDragging = false;
+
+    init();
+    animate();
+
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const loader = new FontLoader();
+        loader.load('Horizon_Bold.json', function(font) {
+            const geometry = new THREE.TextGeometry('loxr', {
+                font: font,
+                size: 1,
+                height: 1.5, // Increase the extrusion depth for more depth
+                curveSegments: 32, // Increase the curve segments for smoother appearance
+                bevelEnabled: true,
+                bevelThickness: 0.05,
+                bevelSize: 0.05,
+                bevelSegments: 10,
+            });
+
+            // Center the geometry
+            geometry.computeBoundingBox();
+            const textWidth = geometry.boundingBox.max.x - geometry.boundingBox.min.x;
+            geometry.translate(-0.5 * textWidth, 0, 0);
+
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            textMesh = new THREE.Mesh(geometry, material);
+            scene.add(textMesh);
+            textMesh.position.set(0, -1, -5); // Adjust the position for better visibility
+            camera.position.z = 5;
+
+            // Add lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(0, 1, 0);
+            scene.add(directionalLight);
+        });
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Apply rotation
+        if (!isDragging && textMesh) {
+            textMesh.rotation.y += 0.01; // Adjust the rotation speed as desired
+        }
+
+        // Render the scene
+        renderer.render(scene, camera);
+    }
+
+    function glitchEffect() {
+        if (textMesh) {
+            const originalColor = textMesh.material.color.getHex();
+
+            // Randomly change the text color
+            textMesh.material.color.setHex(Math.random() * 0xffffff);
+
+            setTimeout(function() {
+                // Reset the text color to the original color
+                textMesh.material.color.setHex(originalColor);
+            }, 100);
+        }
+    }
+
+    document.addEventListener('mousedown', function() {
+        isDragging = true;
+    });
+
+    document.addEventListener('mouseup', function() {
+        isDragging = false;
+        glitchEffect();
+    });
+
+    document.addEventListener('mouseout', function() {
+        isDragging = false;
+        glitchEffect();
+    });
+</script>
+</body>
+</html>

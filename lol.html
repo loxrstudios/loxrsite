@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Trippy Website</title>
+  <style>
+    body {
+      background: black;
+      overflow: hidden;
+    }
+    #myImage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      filter: grayscale(100%);
+      transition: transform 0.5s ease-in-out, filter 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <img id="myImage" src="loxr.png" width="300" height="200">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+  <script>
+    const myImage = document.getElementById('myImage');
+    const effects = ['grayscale(1)', 'sepia(1)', 'saturate(20)', 'hue-rotate(90deg)', 'grayscale(0)'];
+    let blurValue = 0;
+    
+    setInterval(() => {
+      const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+      gsap.to(myImage, {
+        filter: randomEffect,
+        duration: Math.random() * 0.9 + 0.1,
+        ease: "power1.inOut"
+      });
+    }, 1000);
+    
+    myImage.addEventListener('mousemove', function(e) {
+      const rotation = `rotate(${e.clientX / window.innerWidth * 360}deg)`;
+      gsap.to(myImage, {
+        transform: rotation,
+        duration: 0.1,
+        ease: "power1.inOut"
+      });
+    });
+    
+    myImage.addEventListener('click', function() {
+      blurValue += 5;
+      const blurEffect = `blur(${blurValue}px)`;
+      gsap.to(myImage, {
+        filter: blurEffect,
+        duration: 0.1,
+        ease: "power1.inOut"
+      });
+    });
+  </script>
+</body>
+</html>
